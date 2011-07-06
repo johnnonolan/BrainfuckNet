@@ -1,0 +1,157 @@
+<Configuration>
+  <SettingsComponent>
+    <string />
+    <integer />
+    <boolean>
+      <setting name="livetemplates.csharp.usevar">False</setting>
+      <setting name="SolutionAnalysisEnabled">False</setting>
+    </boolean>
+  </SettingsComponent>
+  <RecentFiles>
+    <RecentFiles>
+      <File id="865FD79F-7D39-4C10-A5E5-2895D4B2BDBC/f:MainWindow.xaml.cs" caret="365" fromTop="13" />
+      <File id="865FD79F-7D39-4C10-A5E5-2895D4B2BDBC/f:MainWindow.xaml" caret="240" fromTop="3" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:LogLevel.cs" caret="198" fromTop="10" />
+      <File id="8CC0C9BD-9C1A-4E98-9C34-45F41956551C/f:BrainfuckCodeProvider.cs" caret="961" fromTop="17" />
+      <File id="8CC0C9BD-9C1A-4E98-9C34-45F41956551C/f:BrainfuckCodeGenerator.cs" caret="16210" fromTop="13" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="684" fromTop="12" />
+    </RecentFiles>
+    <RecentEdits>
+      <File id="8CC0C9BD-9C1A-4E98-9C34-45F41956551C/f:BrainfuckCodeProvider.cs" caret="1720" fromTop="35" />
+      <File id="8CC0C9BD-9C1A-4E98-9C34-45F41956551C/f:BrainfuckCodeGenerator.cs" caret="17486" fromTop="11" />
+      <File id="8CC0C9BD-9C1A-4E98-9C34-45F41956551C/f:BrainfuckCodeGenerator.cs" caret="17513" fromTop="348" />
+      <File id="8CC0C9BD-9C1A-4E98-9C34-45F41956551C/f:BrainfuckCodeGenerator.cs" caret="292" fromTop="13" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="964" fromTop="15" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:LogLevel.cs" caret="198" fromTop="10" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="2244" fromTop="33" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="913" fromTop="9" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="4069" fromTop="37" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="1140" fromTop="22" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="1849" fromTop="33" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="3747" fromTop="40" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="3747" fromTop="30" />
+      <File id="8CC0C9BD-9C1A-4E98-9C34-45F41956551C/f:BrainfuckCodeGenerator.cs" caret="16168" fromTop="31" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="3701" fromTop="21" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="3747" fromTop="37" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="3730" fromTop="35" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="82" fromTop="3" />
+      <File id="8CC0C9BD-9C1A-4E98-9C34-45F41956551C/f:BrainfuckCodeProvider.cs" caret="1319" fromTop="24" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="219" fromTop="11" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="652" fromTop="15" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="946" fromTop="17" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="4269" fromTop="32" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="499" fromTop="16" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="872" fromTop="18" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="2449" fromTop="16" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="2614" fromTop="20" />
+      <File id="94C23B86-9370-45D2-A732-D994EA25F675/f:Program.cs" caret="2043" fromTop="19" />
+    </RecentEdits>
+  </RecentFiles>
+  <NAntValidationSettings>
+    <NAntPath value="" />
+  </NAntValidationSettings>
+  <UnitTestRunner>
+    <Providers />
+  </UnitTestRunner>
+  <UnitTestRunnerNUnit>
+    <NUnitInstallDir IsNull="False">
+    </NUnitInstallDir>
+    <UseAddins>Never</UseAddins>
+  </UnitTestRunnerNUnit>
+  <CompletionStatisticsManager>
+    <ItemStatistics item="Default">
+      <Item value="private" priority="6" />
+      <Item value="static" priority="4" />
+      <Item value="string" priority="5" />
+      <Item value="for" priority="0" />
+      <Item value="args" priority="7" />
+      <Item value="Length" priority="2" />
+      <Item value="if" priority="5" />
+      <Item value="const" priority="1" />
+      <Item value="OutputArgument" priority="0" />
+      <Item value="OutputArgumentLong" priority="0" />
+      <Item value="List" priority="0" />
+      <Item value="new" priority="1" />
+      <Item value="List&lt;string&gt;" priority="0" />
+      <Item value="continue" priority="1" />
+      <Item value="_files" priority="0" />
+      <Item value="cw" priority="5" />
+      <Item value="void" priority="1" />
+      <Item value="Environment`0" priority="3" />
+      <Item value="LogLevel`0" priority="4" />
+      <Item value="logLevel" priority="1" />
+      <Item value="message" priority="0" />
+      <Item value="int" priority="0" />
+      <Item value="PrintUsage`0" priority="1" />
+      <Item value="HelpArgument" priority="0" />
+      <Item value="HelpArgumentLong" priority="0" />
+      <Item value="assemblyName" priority="1" />
+      <Item value="assembly" priority="0" />
+      <Item value="name" priority="0" />
+      <Item value="i" priority="1" />
+      <Item value="Log`0" priority="2" />
+      <Item value="_output" priority="6" />
+      <Item value="parameters" priority="0" />
+      <Item value="Files" priority="0" />
+      <Item value="StringBuilder`0" priority="0" />
+      <Item value="StringBuilder" priority="0" />
+      <Item value="sb" priority="2" />
+      <Item value="foreach" priority="1" />
+      <Item value="results" priority="0" />
+      <Item value="CompilerError`0" priority="0" />
+      <Item value="error" priority="0" />
+      <Item value="try" priority="0" />
+      <Item value="e" priority="0" />
+      <Item value="bool" priority="0" />
+      <Item value="_verbose" priority="1" />
+      <Item value="file" priority="0" />
+      <Item value="VerboseArgument" priority="0" />
+      <Item value="true" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:System.Collections.Generic.List`1">
+      <Item value="Add`0" priority="0" />
+      <Item value="ToArray`0" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:@System.Environment">
+      <Item value="Exit`0" priority="2" />
+      <Item value="NewLine" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:BrainfuckNet.Compiler.LogLevel">
+      <Item value="ToString`0" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:@BrainfuckNet.Compiler.LogLevel">
+      <Item value="Error" priority="2" />
+      <Item value="Information" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:@System.Reflection.Assembly">
+      <Item value="GetEntryAssembly`0" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:System.Reflection.Assembly">
+      <Item value="GetName`0" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:System.Reflection.AssemblyName">
+      <Item value="Name" priority="1" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:System.String">
+      <Item value="Contains`0" priority="0" />
+      <Item value="Substring`0" priority="0" />
+      <Item value="Length" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:System.CodeDom.Compiler.ICodeCompiler">
+      <Item value="CompileAssemblyFromFileBatch`0" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:System.Text.StringBuilder">
+      <Item value="Append`0" priority="2" />
+      <Item value="ToString`0" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:System.CodeDom.Compiler.CompilerResults">
+      <Item value="Errors" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:System.CodeDom.Compiler.CompilerError">
+      <Item value="ErrorText" priority="0" />
+    </ItemStatistics>
+    <ItemStatistics item="Qualified:System.Exception">
+      <Item value="Message" priority="0" />
+    </ItemStatistics>
+  </CompletionStatisticsManager>
+</Configuration>
