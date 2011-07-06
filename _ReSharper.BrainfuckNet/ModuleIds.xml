@@ -1,0 +1,5 @@
+<Modules>
+  <Module PersistentId="8CC0C9BD-9C1A-4E98-9C34-45F41956551C" ModuleId="BrainfuckNet" />
+  <Module PersistentId="94C23B86-9370-45D2-A732-D994EA25F675" ModuleId="BrainfuckNet.Compiler" />
+  <Module PersistentId="865FD79F-7D39-4C10-A5E5-2895D4B2BDBC" ModuleId="BrainfuckNet.IDE" />
+</Modules>
