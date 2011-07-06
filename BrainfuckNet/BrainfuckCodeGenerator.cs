@@ -126,7 +126,7 @@ namespace BrainfuckNet
             generator.Emit(OpCodes.Ldc_I4_0);
             generator.Emit(OpCodes.Stsfld, lastInstructionChar);
 
-            generator.Emit(OpCodes.Ldc_I4, 1024);
+            generator.Emit(OpCodes.Ldc_I4, 1000000);
             generator.Emit(OpCodes.Newarr, typeof(byte));
             generator.Emit(OpCodes.Stsfld, cellsField);
             
@@ -144,6 +144,8 @@ namespace BrainfuckNet
             generator.Emit(OpCodes.Add);
             generator.Emit(OpCodes.Conv_U1);
             generator.Emit(OpCodes.Stobj, typeof(byte));
+
+            //generator.Emit(OpCodes.Ret);
 
             MethodBuilder decrementCellMethodBuilder = typeBuilder.DefineMethod("DecrementCell", MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard);
             generator = decrementCellMethodBuilder.GetILGenerator();
