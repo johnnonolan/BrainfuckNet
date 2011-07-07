@@ -1,7 +1,9 @@
 ﻿using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 
 namespace BrainfuckNet.Compiler
@@ -15,8 +17,18 @@ namespace BrainfuckNet.Compiler
         private const string HelpArgument = "-h";
         private const string HelpArgumentLong = "--help";
         private const string VerboseArgument = "-v";
+        private const string DebugArgument = "-d";
 
         #endregion Arguments
+
+        #region Constants
+
+        private const string NoSourceFilesSpecified = "No source files specified.";
+        private const string NoOutputFileSpecified = "No output file specified.";
+        private const string Extension = ".exe";
+        private const string BuildDirectory = "Build";
+
+        #endregion Constants
 
         #region ExitCodes
 
@@ -30,6 +42,7 @@ namespace BrainfuckNet.Compiler
         private static string _output = "bf";
         private static readonly List<string> Files = new List<string>();
         private static bool _verbose;
+        private static bool _debug;
 
         #endregion Fields
 
@@ -39,7 +52,7 @@ namespace BrainfuckNet.Compiler
         {
             if (args.Length == 0)
             {
-               Log(LogLevel.Error, "No source files specified.");
+               Log(LogLevel.Error, NoSourceFilesSpecified);
                PrintUsage();
                Environment.Exit(ErrorExitCode);
             }
@@ -52,14 +65,14 @@ namespace BrainfuckNet.Compiler
 
                     if (i + 1 > args.Length)
                     {
-                        Log(LogLevel.Error, "No output file specified.");
+                        Log(LogLevel.Error, NoOutputFileSpecified);
                         PrintUsage();
                         Environment.Exit(ErrorExitCode);
                     }
 
                     _output = args[i];
 
-                    if (_output.Contains(".exe"))
+                    if (_output.Contains(Extension))
                         _output = _output.Substring(0, _output.Length - 4);
 
                     continue;   
@@ -71,19 +84,45 @@ namespace BrainfuckNet.Compiler
                     continue;
                 }
 
+                if (args[i] == DebugArgument)
+                {
+                    _debug = true;
+                    continue;
+                }
+
                 if (args[i] == HelpArgument || args[i] == HelpArgumentLong)
                 {
                     PrintUsage();
                     Environment.Exit(OkExitCode);
                 }
 
+                //MONGOHACK because im to lazy to refactor
+
+                if (Files.Count > 0)
+                {
+                    Log(LogLevel.Error, "Can only have one source file.");
+                    Environment.Exit(ErrorExitCode);
+                }
+
                 Files.Add(args[i]);
             }
             try
             {
+                StreamReader inputFile = File.OpenText(Files[0]);
+
+                if (!Directory.Exists(BuildDirectory))
+                    Directory.CreateDirectory(BuildDirectory);
+
+                Environment.CurrentDirectory = Path.GetFullPath(BuildDirectory);
+
+                foreach (string file in Directory.EnumerateFiles(Environment.CurrentDirectory))
+                {
+                    File.Delete(file);
+                }
+
                 if (_verbose)
                 {
-                    Log(LogLevel.Information, "Output file: " + _output + ".exe");
+                    Log(LogLevel.Information, "Output file: " + _output + Extension);
 
                     foreach (string file in Files)
                     {
@@ -91,30 +130,19 @@ namespace BrainfuckNet.Compiler
                     }
                 }
 
-                BrainfuckCodeProvider codeProvider = new BrainfuckCodeProvider();
+                GenerateAssembly(false, inputFile);
 
-                ICodeCompiler codeCompiler = codeProvider.CreateCompiler();
-
-                CompilerParameters parameters = new CompilerParameters();
-                parameters.OutputAssembly = _output;
-
-                CompilerResults results = codeCompiler.CompileAssemblyFromFileBatch(parameters, Files.ToArray());
-
-                if (results.Errors.HasErrors)
+                if (_debug)
                 {
-                    StringBuilder sb = new StringBuilder();
-
-                    sb.Append(results.Errors.Count);
-                    sb.Append(" Errors:");
-                    sb.Append(Environment.NewLine);
-
-                    foreach (CompilerError error in results.Errors)
-                    {
-                        sb.Append(error.ErrorText);
-                    }
-
-                    Console.WriteLine(sb.ToString());
+                    inputFile.BaseStream.Seek(0, SeekOrigin.Begin);
+                    GenerateAssembly(true, inputFile);
                 }
+
+                foreach (string file in Directory.EnumerateFiles(Environment.CurrentDirectory, "*.resources"))
+                {
+                    File.Delete(file);
+                }
+                
             }
             catch (Exception e)
             {
@@ -122,13 +150,40 @@ namespace BrainfuckNet.Compiler
             }
         }
 
+        private static void GenerateAssembly(bool debug, StreamReader inputFile)
+        {
+            AssemblyGenerator assemblyGenerator = new AssemblyGenerator();
+            assemblyGenerator.Debug = debug;
+            assemblyGenerator.Name = _output;
+
+            AssemblyBuilder assemblyBuilder = assemblyGenerator.Generate(inputFile);
+
+            assemblyBuilder.Save(assemblyBuilder.GetName().Name);
+
+            if (assemblyGenerator.Errors.HasErrors)
+            {
+                StringBuilder sb = new StringBuilder();
+
+                sb.Append(assemblyGenerator.Errors.Count);
+                sb.Append(" Errors:");
+                sb.Append(Environment.NewLine);
+
+                foreach (CompilerError error in assemblyGenerator.Errors)
+                {
+                    sb.Append(error.ErrorText);
+                }
+
+                Console.WriteLine(sb.ToString());
+            }
+        }
+
         private static void PrintUsage()
         {
             AssemblyName assemblyName = Assembly.GetEntryAssembly().GetName();
 
-            string name = assemblyName.Name + ".exe";
+            string name = assemblyName.Name + Extension;
 
-            Console.WriteLine("Usage: " + name + " [-o|--output outputFile] [-h|--help] source.bf source2.bf ...");
+            Console.WriteLine("Usage: " + name + " [-o|--output outputFile] [-h|--help] source.bf");
         }
 
         private static void Log(LogLevel logLevel, string message)
