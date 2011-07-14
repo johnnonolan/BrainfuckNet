@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Resources;
+using System.Threading;
 
 namespace BrainfuckNet
 {
@@ -32,6 +33,8 @@ namespace BrainfuckNet
 
         private FieldBuilder _cells;
         private FieldBuilder _activeCell;
+        private FieldBuilder _breakEvent;
+        private FieldBuilder _breakWait;
 
         ConstructorBuilder _constructor;
 
@@ -42,6 +45,8 @@ namespace BrainfuckNet
         MethodBuilder _execute;
         MethodBuilder _main;
         MethodBuilder _printCell;
+        MethodBuilder _break;
+        MethodBuilder _continue;
 
         #endregion Fields
 
@@ -61,12 +66,7 @@ namespace BrainfuckNet
         #endregion Constructors
 
         #region Initialization
-
-        private static MethodBuilder DefinePublicStaticMethod(TypeBuilder typeBuilder, string name)
-        {
-            return typeBuilder.DefineMethod(name, MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard);
-        }
-
+        
         /// <summary>
         /// Initialize assembly, types and methods for the generated assembly.
         /// </summary>
@@ -87,26 +87,36 @@ namespace BrainfuckNet
             
             _typeBuilder = moduleBuilder.DefineType(Name + "." + ClassName, TypeAttributes.Public);
 
+            _cells = _typeBuilder.DefineField("_cells", typeof(byte[]), FieldAttributes.Private);
+            _activeCell = _typeBuilder.DefineField("_activeCell", typeof(int), FieldAttributes.Private);
 
-            _cells = _typeBuilder.DefineField("_cells", typeof(byte[]), FieldAttributes.Private | FieldAttributes.Static);
-            _activeCell = _typeBuilder.DefineField("_activeCell", typeof(int), FieldAttributes.Private | FieldAttributes.Static);
-
+            if (Debug)
+            {
+                _breakWait = _typeBuilder.DefineField("_breakWait", typeof (ManualResetEvent), FieldAttributes.Private);
+                //_breakEvent = _typeBuilder.DefineField("BreakEvent", typeof (EventHandler<EventArgs>), FieldAttributes.Public | FieldAttributes.Static);
+                _breakEvent = AddEvent(_typeBuilder, "BreakEvent", typeof(EventHandler<EventArgs>));
+            }
 
             _constructor = _typeBuilder.DefineConstructor(
                 MethodAttributes.Public |
-                MethodAttributes.Static |
                 MethodAttributes.SpecialName |
                 MethodAttributes.RTSpecialName,
                 CallingConventions.Standard,
                 Type.EmptyTypes);
 
-            _incrementCell = DefinePublicStaticMethod(_typeBuilder, "IncrementCell");
-            _decrementCell = DefinePublicStaticMethod(_typeBuilder, "DecrementCell");
-            _printCell = DefinePublicStaticMethod(_typeBuilder, "PrintCell");
-            _incrementActiveCell = DefinePublicStaticMethod(_typeBuilder, "IncrementActiveCell");
-            _decrementActiveCell = DefinePublicStaticMethod(_typeBuilder, "DecrementActiveCell");
-            _execute = DefinePublicStaticMethod(_typeBuilder, "Execute");
-            _main = DefinePublicStaticMethod(_typeBuilder, "Main");
+            _incrementCell = AddPublicMethod(_typeBuilder, "IncrementCell", new[] { typeof(int) });
+            _decrementCell = AddPublicMethod(_typeBuilder, "DecrementCell", new[] { typeof(int) });
+            _printCell = AddPublicMethod(_typeBuilder, "PrintCell", new[] { typeof(int) });
+            _incrementActiveCell = AddPublicMethod(_typeBuilder, "IncrementActiveCell", new[] { typeof(int) });
+            _decrementActiveCell = AddPublicMethod(_typeBuilder, "DecrementActiveCell", new[] { typeof(int) });
+            _execute = AddPublicMethod(_typeBuilder, "Execute");
+            _main = AddPublicStaticMethod(_typeBuilder, "Main");
+
+            if (Debug)
+            {
+                _break = AddPublicMethod(_typeBuilder, "Break");
+                _continue = AddPublicMethod(_typeBuilder, "Continue");
+            }
 
             assemblyBuilder.SetEntryPoint(_main);
 
@@ -157,6 +167,12 @@ namespace BrainfuckNet
             DecrementActiveCell();
             PrintCell();
 
+            if (Debug)
+            {
+                Break();
+                Continue();
+            }
+
             FinalizeAssembly();
 
             return assemblyBuilder;
@@ -170,12 +186,22 @@ namespace BrainfuckNet
         {
             ILGenerator generator = _constructor.GetILGenerator();
 
+            generator.Emit(OpCodes.Ldarg_0);
             generator.Emit(OpCodes.Ldc_I4_0);
-            generator.Emit(OpCodes.Stsfld, _activeCell);
+            generator.Emit(OpCodes.Stfld, _activeCell);
 
+            generator.Emit(OpCodes.Ldarg_0);
             generator.Emit(OpCodes.Ldc_I4, 1000000);
             generator.Emit(OpCodes.Newarr, typeof(byte));
-            generator.Emit(OpCodes.Stsfld, _cells);
+            generator.Emit(OpCodes.Stfld, _cells);
+
+            if (Debug)
+            {
+                generator.Emit(OpCodes.Ldarg_0);
+                generator.Emit(OpCodes.Ldc_I4_0);
+                generator.Emit(OpCodes.Newobj, typeof (ManualResetEvent).GetConstructor(new []{typeof(bool)}));
+                generator.Emit(OpCodes.Stfld, _breakWait);
+            }
 
             generator.Emit(OpCodes.Ret);
         }
@@ -184,66 +210,112 @@ namespace BrainfuckNet
         {
             ILGenerator generator = _incrementCell.GetILGenerator();
 
-            generator.Emit(OpCodes.Ldsfld, _cells);
-            generator.Emit(OpCodes.Ldsfld, _activeCell);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _cells);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _activeCell);
             generator.Emit(OpCodes.Ldelema, typeof(byte));
             generator.Emit(OpCodes.Dup);
             generator.Emit(OpCodes.Ldobj, typeof(byte));
-            generator.Emit(OpCodes.Ldc_I4_1);
+            generator.Emit(OpCodes.Ldarg_1);
             generator.Emit(OpCodes.Add);
             generator.Emit(OpCodes.Conv_U1);
             generator.Emit(OpCodes.Stobj, typeof(byte));
+            generator.Emit(OpCodes.Ret);
         }
 
         private void DecrementCell()
         {
             ILGenerator generator = _decrementCell.GetILGenerator();
 
-            generator.Emit(OpCodes.Ldsfld, _cells);
-            generator.Emit(OpCodes.Ldsfld, _activeCell);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _cells);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _activeCell);
             generator.Emit(OpCodes.Ldelema, typeof(byte));
             generator.Emit(OpCodes.Dup);
             generator.Emit(OpCodes.Ldobj, typeof(byte));
-            generator.Emit(OpCodes.Ldc_I4_1);
+            generator.Emit(OpCodes.Ldarg_1);
             generator.Emit(OpCodes.Sub);
             generator.Emit(OpCodes.Conv_U1);
             generator.Emit(OpCodes.Stobj, typeof(byte));
+            generator.Emit(OpCodes.Ret);
         }
 
         private void PrintCell()
         {
             ILGenerator generator = _printCell.GetILGenerator();
 
-            generator.Emit(OpCodes.Ldsfld, _cells);
-            generator.Emit(OpCodes.Ldsfld, _activeCell);
+            LocalBuilder c = generator.DeclareLocal(typeof (char));
+            LocalBuilder left = generator.DeclareLocal(typeof(int));
+            LocalBuilder countZero = generator.DeclareLocal(typeof(bool));
+
+            Label loopStart = generator.DefineLabel();
+            Label loop = generator.DefineLabel();
+
+            generator.Emit(OpCodes.Ldarg_1);
+            generator.Emit(OpCodes.Stloc, left.LocalIndex);
+            generator.Emit(OpCodes.Ldc_I4_0);
+            generator.Emit(OpCodes.Stloc, countZero.LocalIndex);
+            
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _cells);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _activeCell);
             generator.Emit(OpCodes.Ldelem, typeof(byte));
+            generator.Emit(OpCodes.Stloc, c.LocalIndex);
+            
+            generator.Emit(OpCodes.Br, loopStart);
+            generator.MarkLabel(loop);
+
+            generator.Emit(OpCodes.Ldloc, c.LocalIndex);
             EmitConsoleWriteChar(generator);
+
+            generator.Emit(OpCodes.Ldloc, left.LocalIndex);
+            generator.Emit(OpCodes.Ldc_I4_1);
+            generator.Emit(OpCodes.Sub);
+            generator.Emit(OpCodes.Stloc, left.LocalIndex);
+
+            generator.MarkLabel(loopStart);
+
+            generator.Emit(OpCodes.Ldloc, left.LocalIndex);
+            generator.Emit(OpCodes.Ldc_I4_0);
+            generator.Emit(OpCodes.Cgt);
+            generator.Emit(OpCodes.Stloc, countZero.LocalIndex);
+            generator.Emit(OpCodes.Ldloc, countZero.LocalIndex);
+            generator.Emit(OpCodes.Brtrue, loop);
+            
+            EmitConsoleOutFlush(generator);
+            generator.Emit(OpCodes.Ret);
         }
 
         private void IncrementActiveCell()
         {
             ILGenerator generator = _incrementActiveCell.GetILGenerator();
 
-            generator.Emit(OpCodes.Ldsfld, _activeCell);
-            generator.Emit(OpCodes.Ldc_I4_1);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _activeCell);
+            generator.Emit(OpCodes.Ldarg_1);
             generator.Emit(OpCodes.Add);
-            generator.Emit(OpCodes.Stsfld, _activeCell);
+            generator.Emit(OpCodes.Stfld, _activeCell);
+            generator.Emit(OpCodes.Ret);
         }
 
         private void DecrementActiveCell()
         {
             ILGenerator generator = _decrementActiveCell.GetILGenerator();
 
-            generator.DeclareLocal(typeof(bool));
-            generator.DeclareLocal(typeof(int));
-
-            generator.Emit(OpCodes.Ldsfld, _activeCell);
-            generator.Emit(OpCodes.Ldc_I4_1);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _activeCell);
+            generator.Emit(OpCodes.Ldarg_1);
             generator.Emit(OpCodes.Sub);
-            generator.Emit(OpCodes.Stsfld, _activeCell);
+            generator.Emit(OpCodes.Stfld, _activeCell);
+            generator.Emit(OpCodes.Ret);
         }
 
-        private void Execute(IEnumerable<char> source)
+        private void Execute(string source)
         {
             ILGenerator generator = _execute.GetILGenerator();
 
@@ -252,50 +324,85 @@ namespace BrainfuckNet
             Stack<int> cellIndex = new Stack<int>();
             Stack<int> boolIndex = new Stack<int>();
 
-            foreach (char c in source)
+            for (int i = 0; i < source.Length; i++)
             {
+                char c = source[i];
+                int count = 1;
+
+                if (c == '>' || c == '<' || c == '+' || c == '-' || c == '.')
+                {
+                    while (i++ < source.Length - 1 && source[i] == c)
+                    {
+                        count++;
+                    }
+
+                    i--;
+                }
+
                 switch (c)
                 {
+                    case'*':
+                        if (Debug)
+                        {
+                            generator.Emit(OpCodes.Ldarg_0);
+                            generator.Emit(OpCodes.Call, _break);
+                        }
+                        break;
+
                     case '>':
+                        generator.Emit(OpCodes.Ldarg_0);
+                        generator.Emit(OpCodes.Ldc_I4, count);
                         generator.Emit(OpCodes.Call, _incrementActiveCell);
                         break;
+
                     case '<':
+                        generator.Emit(OpCodes.Ldarg_0);
+                        generator.Emit(OpCodes.Ldc_I4, count);
                         generator.Emit(OpCodes.Call, _decrementActiveCell);
                         break;
+
                     case '+':
+                        generator.Emit(OpCodes.Ldarg_0);
+                        generator.Emit(OpCodes.Ldc_I4, count);
                         generator.Emit(OpCodes.Call, _incrementCell);
                         break;
 
                     case '-':
+                        generator.Emit(OpCodes.Ldarg_0);
+                        generator.Emit(OpCodes.Ldc_I4, count);
                         generator.Emit(OpCodes.Call, _decrementCell);
                         break;
 
                     case '.':
+                        generator.Emit(OpCodes.Ldarg_0);
+                        generator.Emit(OpCodes.Ldc_I4, count);
                         generator.Emit(OpCodes.Call, _printCell);
                         break;
+
                     case '[':
-                        LocalBuilder loopBool = generator.DeclareLocal(typeof (bool));
+                        LocalBuilder loopBool = generator.DeclareLocal(typeof(bool));
                         Label loopStart = generator.DefineLabel();
                         Label loopEnd = generator.DefineLabel();
                         boolIndex.Push(loopBool.LocalIndex);
                         loopStarts.Push(loopStart);
                         loopEnds.Push(loopEnd);
-                        LocalBuilder local = generator.DeclareLocal(typeof (int));
+                        LocalBuilder local = generator.DeclareLocal(typeof(int));
                         cellIndex.Push(local.LocalIndex);
-                        generator.Emit(OpCodes.Ldsfld, _activeCell);
-                        generator.Emit(OpCodes.Stloc, local.LocalIndex);
 
                         generator.Emit(OpCodes.Br, loopEnd);
                         generator.MarkLabel(loopStart);
                         generator.Emit(OpCodes.Nop);
 
                         break;
+
                     case ']':
                         generator.MarkLabel(loopEnds.Pop());
-
-                        generator.Emit(OpCodes.Ldsfld, _cells);
-                        generator.Emit(OpCodes.Ldsfld, _activeCell);
-                        generator.Emit(OpCodes.Ldelem, typeof (byte));
+                        
+                        generator.Emit(OpCodes.Ldarg_0);
+                        generator.Emit(OpCodes.Ldfld, _cells);
+                        generator.Emit(OpCodes.Ldarg_0);
+                        generator.Emit(OpCodes.Ldfld, _activeCell);
+                        generator.Emit(OpCodes.Ldelem, typeof(byte));
 
                         generator.Emit(OpCodes.Ldc_I4_0);
                         generator.Emit(OpCodes.Cgt);
@@ -312,27 +419,36 @@ namespace BrainfuckNet
                         break;
                 }
             }
+
+            generator.Emit(OpCodes.Ret);
         }
 
         private void Main()
         {
             ILGenerator generator = _main.GetILGenerator();
 
-            generator.DeclareLocal(typeof (Exception));
+            LocalBuilder e = generator.DeclareLocal(typeof (Exception));
+            LocalBuilder program = generator.DeclareLocal(_typeBuilder);
+            program.SetLocalSymInfo("program");
 
             generator.BeginExceptionBlock();
-            generator.Emit(OpCodes.Call, _execute);
-            generator.BeginCatchBlock(typeof(Exception));
-            
-            generator.Emit(OpCodes.Stloc_0);
-            generator.Emit(OpCodes.Ldloc_0);
 
-            generator.Emit(OpCodes.Call, typeof(Exception).GetMethod("get_Message", new Type[0]));
+            generator.Emit(OpCodes.Newobj, _constructor);
+            generator.Emit(OpCodes.Stloc, program.LocalIndex);
+            generator.Emit(OpCodes.Ldloc, program.LocalIndex);
+            generator.Emit(OpCodes.Call, _execute);
+
+            generator.BeginCatchBlock(typeof(Exception));
+
+            generator.Emit(OpCodes.Stloc, e.LocalIndex);
+            generator.Emit(OpCodes.Ldloc, e.LocalIndex);
+
+            generator.Emit(OpCodes.Callvirt, typeof(Exception).GetMethod("get_Message", Type.EmptyTypes));
             EmitConsoleWriteLine(generator);
 
-            generator.Emit(OpCodes.Ldloc_0);
+            generator.Emit(OpCodes.Ldloc, e.LocalIndex);
 
-            generator.Emit(OpCodes.Call, typeof(Exception).GetMethod("get_StackTrace", new Type[0]));
+            generator.Emit(OpCodes.Callvirt, typeof(Exception).GetMethod("get_StackTrace", Type.EmptyTypes));
             EmitConsoleWriteLine(generator);
 
             generator.Emit(OpCodes.Ldstr, "");
@@ -341,20 +457,187 @@ namespace BrainfuckNet
             generator.Emit(OpCodes.Ldstr, "Active Cell: ");
             EmitConsoleWriteLine(generator);
 
-            generator.Emit(OpCodes.Ldsflda, _activeCell);
+            generator.Emit(OpCodes.Ldloc, program.LocalIndex);
+            generator.Emit(OpCodes.Ldflda, _activeCell);
             EmitToString(generator, typeof(int));
             EmitConsoleWriteLine(generator);
 
-            generator.Emit(OpCodes.Ret);
             generator.EndExceptionBlock();
             generator.Emit(OpCodes.Nop);
 
             EmitConsoleReadLine(generator);
+            generator.Emit(OpCodes.Ret);
+        }
+
+        private void Break()
+        {
+            ILGenerator generator = _break.GetILGenerator();
+
+            LocalBuilder breakEventIsNull = generator.DeclareLocal(typeof (bool));
+            Label returnLabel = generator.DefineLabel();
+
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _breakEvent);
+            generator.Emit(OpCodes.Ldnull);
+            generator.Emit(OpCodes.Ceq);
+            generator.Emit(OpCodes.Stloc, breakEventIsNull);
+            generator.Emit(OpCodes.Ldloc, breakEventIsNull);
+            generator.Emit(OpCodes.Brtrue, returnLabel);
+
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _breakEvent);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Newobj, typeof(EventArgs).GetConstructor(Type.EmptyTypes));
+            generator.Emit(OpCodes.Callvirt, typeof(EventHandler<EventArgs>).GetMethod("Invoke", new[] { typeof(object), typeof(EventArgs) }));
+
+            generator.MarkLabel(returnLabel);
+
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _breakWait);
+            generator.Emit(OpCodes.Callvirt, typeof(EventWaitHandle).GetMethod("WaitOne", Type.EmptyTypes));
+            generator.Emit(OpCodes.Pop);
+
+            generator.Emit(OpCodes.Ret);
+        }
+
+        private void Continue()
+        {
+            ILGenerator generator = _continue.GetILGenerator();
+
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, _breakWait);
+            generator.Emit(OpCodes.Callvirt, typeof(EventWaitHandle).GetMethod("Set", Type.EmptyTypes));
+
+            generator.Emit(OpCodes.Ret);
         }
 
         #endregion Method Bodies
 
         #region Helpers
+
+        private static MethodBuilder AddPublicStaticMethod(TypeBuilder typeBuilder, string name)
+        {
+            return typeBuilder.DefineMethod(name, MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard);
+        }
+
+        private static MethodBuilder AddPublicMethod(TypeBuilder typeBuilder, string name, Type[] methodArguments = null)
+        {
+            if (methodArguments == null)
+                methodArguments = new Type[0];
+
+            return typeBuilder.DefineMethod(name, MethodAttributes.Public, CallingConventions.Standard, typeof(void), methodArguments);
+        }
+
+        private static MethodBuilder AddPrivateMethod(TypeBuilder typeBuilder, string name)
+        {
+            return typeBuilder.DefineMethod(name, MethodAttributes.Private, CallingConventions.Standard);
+        }
+
+        private static FieldBuilder AddEvent(TypeBuilder typeBuilder, string eventName, Type eventHandlerType)
+        {
+            EventBuilder eventBuilder = typeBuilder.DefineEvent(eventName, EventAttributes.None, eventHandlerType);
+
+            FieldBuilder backingField = typeBuilder.DefineField(eventName, eventHandlerType, FieldAttributes.Private);
+
+            MethodBuilder addMethod = typeBuilder.DefineMethod("add_" + eventName,
+                                                                MethodAttributes.Public | MethodAttributes.HideBySig |
+                                                                MethodAttributes.SpecialName,
+                                                                CallingConventions.Standard, typeof(void), new [] { eventHandlerType });
+
+            ILGenerator generator = addMethod.GetILGenerator();
+
+            generator.DeclareLocal(eventHandlerType);
+            generator.DeclareLocal(eventHandlerType);
+            generator.DeclareLocal(eventHandlerType);
+            generator.DeclareLocal(typeof(bool));
+
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldfld, backingField);
+            generator.Emit(OpCodes.Stloc_0);
+            Label loop = generator.DefineLabel();
+            generator.MarkLabel(loop);
+            generator.Emit(OpCodes.Ldloc_0);
+            generator.Emit(OpCodes.Stloc_1);
+            generator.Emit(OpCodes.Ldloc_1);
+            generator.Emit(OpCodes.Ldarg_1);
+            generator.Emit(OpCodes.Call, typeof(Delegate).GetMethod("Combine", new []{typeof(Delegate), typeof(Delegate)}));
+            generator.Emit(OpCodes.Castclass, eventHandlerType);
+            generator.Emit(OpCodes.Stloc_2);
+            generator.Emit(OpCodes.Ldarg_0);
+            generator.Emit(OpCodes.Ldflda, backingField);
+            generator.Emit(OpCodes.Ldloc_2);
+            generator.Emit(OpCodes.Ldloc_1);
+
+            MethodInfo m = GetGenericMethod(typeof(Interlocked), "CompareExchange", new [] { eventHandlerType }, new [] { eventHandlerType, eventHandlerType, eventHandlerType });
+
+            generator.Emit(OpCodes.Call, m);
+            generator.Emit(OpCodes.Stloc_0);
+            generator.Emit(OpCodes.Ldloc_0);
+            generator.Emit(OpCodes.Ldloc_1);
+            generator.Emit(OpCodes.Ceq);
+            generator.Emit(OpCodes.Ldc_I4_0);
+            generator.Emit(OpCodes.Ceq);
+            generator.Emit(OpCodes.Stloc_3);
+            generator.Emit(OpCodes.Ldloc_3);
+            generator.Emit(OpCodes.Brtrue_S, loop);
+
+            generator.Emit(OpCodes.Ldstr, "ADD...");
+            EmitConsoleWriteLine(generator);
+
+            generator.Emit(OpCodes.Ret);
+
+            MethodBuilder removeMethod = typeBuilder.DefineMethod("remove_" + eventName,
+                                                                MethodAttributes.Public | MethodAttributes.HideBySig |
+                                                                MethodAttributes.SpecialName,
+                                                                CallingConventions.Standard, typeof(void), new[] { eventHandlerType });
+
+            generator = removeMethod.GetILGenerator();
+
+            generator.Emit(OpCodes.Ldstr, "REMOVE...");
+
+            generator.Emit(OpCodes.Ret);
+
+            eventBuilder.SetAddOnMethod(addMethod);
+            eventBuilder.SetRemoveOnMethod(removeMethod);
+
+            return backingField;
+        }
+
+        public static MethodInfo GetGenericMethod(Type type, string name, Type[] genericTypeArgs, Type[] paramTypes)
+        {
+            MethodInfo[] methodInfos = type.GetMethods();
+
+            foreach (MethodInfo m in methodInfos)
+                if (m.Name == name && m.IsGenericMethod)
+                {
+                    ParameterInfo[] parameterInfos = m.GetParameters();
+
+                    if (parameterInfos.Length != paramTypes.Length)
+                        continue;
+
+                    for (int i = 0; i < parameterInfos.Length; i++)
+                    {
+                        if (parameterInfos[i].ParameterType != paramTypes[i])
+                            continue;
+                    }
+
+                    Type[] genericArguments = m.GetGenericArguments();
+
+                    if (genericArguments.Length != genericTypeArgs.Length)
+                        continue;
+
+                    for (int i = 0; i < genericArguments.Length; i++)
+                    {
+                        if (genericArguments[i] != genericTypeArgs[i])
+                            continue;
+                    }
+
+                    return m.MakeGenericMethod(genericTypeArgs);
+                    
+                }
+            return null;
+        }
+
 
         private static void EmitConsoleReadLine(ILGenerator generator)
         {
@@ -365,6 +648,10 @@ namespace BrainfuckNet
         {
             MethodInfo writeMethod = typeof(Console).GetMethod("Write", new[] { typeof(char) });
             generator.Emit(OpCodes.Call, writeMethod);
+        }
+
+        private static void EmitConsoleOutFlush(ILGenerator generator)
+        {
             generator.Emit(OpCodes.Call, typeof(Console).GetMethod("get_Out", new Type[0]));
             generator.Emit(OpCodes.Callvirt, typeof(TextWriter).GetMethod("Flush", new Type[0]));
         }

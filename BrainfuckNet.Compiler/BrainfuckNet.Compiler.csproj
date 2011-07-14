@@ -54,6 +54,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="lady.bf" />
     <None Include="test.bf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

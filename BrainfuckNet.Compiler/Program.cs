@@ -175,6 +175,35 @@ namespace BrainfuckNet.Compiler
 
                 Console.WriteLine(sb.ToString());
             }
+
+            if (debug)
+            {
+                Assembly assembly = Assembly.LoadFrom("test.debug.exe");
+                
+                Type t = assembly.GetType("test.Program");
+
+                object o = Activator.CreateInstance(t);
+
+                MemberInfo[] memberInfos =
+                    t.GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+                                 BindingFlags.Static);
+
+                EventInfo eventInfo = t.GetEvent("BreakEvent", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+                                 BindingFlags.Static);
+
+                //eventInfo.AddEventHandler(o, new EventHandler<EventArgs>(Test));
+
+                //MethodInfo m = t.GetMethod("Break");
+
+                //m.Invoke(o, new object[0]);
+            }
+
+            //Console.ReadLine();
+        }
+
+        private static void Test(object sender, EventArgs eventArgs)
+        {
+            Console.WriteLine("ASDJFKASDFKADFJS");
         }
 
         private static void PrintUsage()
